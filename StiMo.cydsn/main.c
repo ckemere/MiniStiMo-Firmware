@@ -241,6 +241,12 @@ CYBLE_GATT_HANDLE_VALUE_PAIR_T uptimeHandleValuePair;
 #define HSIOM_A_FLAG ((uint32)(0x06) << (4*Electrode_0_SHIFT))
 #define HSIOM_B_FLAG ((uint32)(0x06) << (4*Electrode_1_SHIFT))
 
+
+// Important!!!: The following functions assume that the stimulation electrodes are connected
+//     to Port2 (for example 2.4 and 2.6). If they are instead on a different port, the register
+//     offset pointer, CYREG_GPIO_PRT2_PC needs to be changed. For Port3 pins, it would be
+//     CYREG_GPIO_PRT3_PC, similar for the other ports.
+
 inline void mux_ground() {
     CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL1), 0x00000000u); // Disconnect analog mux from all pins
     CY_SET_REG32((void *)(CYREG_GPIO_PRT2_PC), PC_A_FLAG + PC_B_FLAG);    // Set Port1_0 and Port1_1 to Hi-Z output
@@ -264,6 +270,8 @@ int main()
     LED_Write(1); // Turn off LED1 (green)
     // Setup IDAC
     IDAC_1_Start();     /* Initialize the IDAC */
+
+    // IMPORTANT! See not above about CYREG_SPIO_PRT2_PC2. The same goes for CYREG_GPIO_PRT2_DR.
     
     CY_SET_REG32((void *)(CYREG_GPIO_PRT2_PC2),  // WE'RE SET UP FOR PINS 3.6 and 3.7, so PRT3!!!!
             ((uint32)(0x01)<<Electrode_0_SHIFT) + 
