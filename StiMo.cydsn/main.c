@@ -28,6 +28,9 @@ int apiResult;
 uint16_t stim_period = 5000;
 uint8_t stim_current = 127;
 
+// ModuleID will be shared as an advertised "Manufacturer Attribute"
+uint8_t moduleID = 1;
+extern CYBLE_GAPP_DISC_MODE_INFO_T cyBle_discoveryModeInfo;
 void UpdateStimInterval()
 {
     /*==============================================================================*/
@@ -86,8 +89,7 @@ void AppCallBack(uint32 event, void* eventParam)
     
       /* Other application-specific event handling here */ 
       case CYBLE_EVT_GAP_DEVICE_CONNECTED: 
-       // LED_Write(1);
-        //updateLed();
+        LED_Write(0); // Dev board is active low!
         break;
       
         // Handle a write request
@@ -118,8 +120,22 @@ void AppCallBack(uint32 event, void* eventParam)
                 CyBle_GattsWriteRsp(cyBle_connHandle);
             }
         }
+        
+        else if (wrReqParam->handleValPair.attrHandle == CYBLE_PARAMS_MODULEID_CHAR_HANDLE)
+        {
+            // Only update the value and write the response if the requested write is allowed
+            //if (CYBLE_GATT_ERR_NONE == CyBle_GattsWriteAttributeValue(&wrReqParam->handleValPair, 0, &cyBle_connHandle, CYBLE_GATT_DB_PEER_INITIATED))
+            if (CYBLE_GATT_ERR_NONE == CyBle_GattsWriteAttributeValue(&wrReqParam->handleValPair, 0, &wrReqParam->connHandle, CYBLE_GATT_DB_PEER_INITIATED))
+            {
+   
+                moduleID = wrReqParam->handleValPair.value.val[0];
+                CyBle_GattsWriteRsp(cyBle_connHandle);
+            }
+        }
+        break;
             
       case CYBLE_EVT_GAP_DEVICE_DISCONNECTED: 
+        LED_Write(1);
         apiResult = CyBle_GappStartAdvertisement(CYBLE_ADVERTISING_FAST); 
         break;
     } 
@@ -374,6 +390,14 @@ int main()
          
          /*C7. Manage System power mode */
          ManageSystemPower();
+        
+	 /* Manufaturer Specific Data is in element 28 of the advertisement packet.
+	  * We can only set it when we're not actively advertising, hence doing it here. */
+         if(CyBle_GetBleSsState() == CYBLE_BLESS_STATE_EVENT_CLOSE) {
+            cyBle_discoveryModeInfo.advData->advData[28u] = moduleID;
+            CyBle_GapUpdateAdvData(cyBle_discoveryModeInfo.advData, cyBle_discoveryModeInfo.scanRspData);
+        }
+        
     }
 }
 
