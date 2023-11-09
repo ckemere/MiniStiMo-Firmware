@@ -3239,7 +3239,7 @@
         <Data key="sourceClk_plus_acuracy_name" value="2" />
         <Data key="src_clk_id" value="A8C3204D-9BE8-4092-97CC-B0B247063044" />
         <Data key="src_clk_name" value="IMO" />
-        <Data key="start_on_reset" value="True" />
+        <Data key="start_on_reset" value="False" />
       </Group>
       <Group key="37D694F5-3CB0-4bfb-AEF0-963FED0CE2EC">
         <Data key="check_tolerance" value="False" />
@@ -3392,7 +3392,7 @@
         <Data key="sourceClk_plus_acuracy_name" value="2" />
         <Data key="src_clk_id" value="A8C3204D-9BE8-4092-97CC-B0B247063044" />
         <Data key="src_clk_name" value="IMO" />
-        <Data key="start_on_reset" value="True" />
+        <Data key="start_on_reset" value="False" />
       </Group>
       <Group key="94835B23-A1C6-4386-9A1F-A6C9073F9668">
         <Data key="check_tolerance" value="False" />
@@ -3469,7 +3469,7 @@
         <Data key="sourceClk_plus_acuracy_name" value="2" />
         <Data key="src_clk_id" value="A8C3204D-9BE8-4092-97CC-B0B247063044" />
         <Data key="src_clk_name" value="IMO" />
-        <Data key="start_on_reset" value="True" />
+        <Data key="start_on_reset" value="False" />
       </Group>
       <Group key="BBDA22A0-AAD6-4AD0-B78B-036251C15373">
         <Data key="check_tolerance" value="False" />
@@ -3515,7 +3515,7 @@
         <Data key="desired_freq" value="32" />
         <Data key="desired_unit" value="3" />
         <Data key="divider" value="0" />
-        <Data key="enabled" value="True" />
+        <Data key="enabled" value="False" />
         <Data key="minus_tolerance" value="0" />
         <Data key="name" value="ILO" />
         <Data key="netlist_name" value="ILO" />
@@ -3525,7 +3525,7 @@
         <Data key="sourceClk_plus_acuracy_name" value="60" />
         <Data key="src_clk_id" value="" />
         <Data key="src_clk_name" value="" />
-        <Data key="start_on_reset" value="True" />
+        <Data key="start_on_reset" value="False" />
       </Group>
       <Group key="EF840448-5105-4752-9F6A-7A52DA445067">
         <Data key="check_tolerance" value="False" />
@@ -3586,20 +3586,20 @@
   <Group key="Pin2">
     <Group key="392cefdb-5569-4dd9-9cce-5a700d8c36c3">
       <Group key="0">
-        <Data key="Port Format" value="3,7" />
+        <Data key="Port Format" value="2,5" />
       </Group>
     </Group>
     <Group key="77715107-f8d5-47e5-a629-0fb83101ac6b">
       <Group key="0">
-        <Data key="Port Format" value="2,6" />
+        <Data key="Port Format" value="3,0" />
       </Group>
       <Group key="1">
-        <Data key="Port Format" value="2,1" />
+        <Data key="Port Format" value="3,1" />
       </Group>
     </Group>
     <Group key="e851a3b9-efb8-48be-bbb8-b303b216c393">
       <Group key="0">
-        <Data key="Port Format" value="3,6" />
+        <Data key="Port Format" value="2,4" />
       </Group>
     </Group>
     <Group key="fbec09ad-f35d-48cf-9f55-84d3d0aecffd">

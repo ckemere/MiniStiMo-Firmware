@@ -28,9 +28,9 @@ int apiResult;
 uint16_t stim_period = 5000;
 uint8_t stim_current = 127;
 
-// ModuleID will be shared as an advertised "Manufacturer Attribute"
 uint8_t moduleID = 1;
 extern CYBLE_GAPP_DISC_MODE_INFO_T cyBle_discoveryModeInfo;
+
 void UpdateStimInterval()
 {
     /*==============================================================================*/
@@ -89,7 +89,7 @@ void AppCallBack(uint32 event, void* eventParam)
     
       /* Other application-specific event handling here */ 
       case CYBLE_EVT_GAP_DEVICE_CONNECTED: 
-        LED_Write(0); // Dev board is active low!
+        LED_Write(1);
         break;
       
         // Handle a write request
@@ -135,7 +135,7 @@ void AppCallBack(uint32 event, void* eventParam)
         break;
             
       case CYBLE_EVT_GAP_DEVICE_DISCONNECTED: 
-        LED_Write(1);
+        LED_Write(0);
         apiResult = CyBle_GappStartAdvertisement(CYBLE_ADVERTISING_FAST); 
         break;
     } 
@@ -211,7 +211,7 @@ CYBLE_BLESS_STATE_ECO_ON) && applicationPower == DEEPSLEEP)
     } 
     /* C12. BLESS is not in Deep Sleep mode. Check if it can enter Sleep mode */ 
     else if((blePower != CYBLE_BLESS_STATE_EVENT_CLOSE)) 
-    { 
+    {         
         /* C13. Application is in Deep Sleep. IMO is not required */ 
         if(applicationPower == DEEPSLEEP) 
         { 
@@ -234,7 +234,7 @@ CYBLE_BLESS_STATE_ECO_ON) && applicationPower == DEEPSLEEP)
             /* C18. Put the system into Sleep mode*/ 
             applicationPower = WAKEUP_SLEEP; 
             CySysPmSleep(); 
-        } 
+        }
     } 
      
     /* Enable interrupts */ 
@@ -257,56 +257,50 @@ CYBLE_GATT_HANDLE_VALUE_PAIR_T uptimeHandleValuePair;
 #define HSIOM_A_FLAG ((uint32)(0x06) << (4*Electrode_0_SHIFT))
 #define HSIOM_B_FLAG ((uint32)(0x06) << (4*Electrode_1_SHIFT))
 
-
-// Important!!!: The following functions assume that the stimulation electrodes are connected
-//     to Port2 (for example 2.4 and 2.6). If they are instead on a different port, the register
-//     offset pointer, CYREG_GPIO_PRT2_PC needs to be changed. For Port3 pins, it would be
-//     CYREG_GPIO_PRT3_PC, similar for the other ports.
-
 inline void mux_ground() {
-    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL1), 0x00000000u); // Disconnect analog mux from all pins
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT2_PC), PC_A_FLAG + PC_B_FLAG);    // Set Port1_0 and Port1_1 to Hi-Z output
+    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL3), 0x00000000u); // Disconnect analog mux from all pins
+    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC), PC_A_FLAG + PC_B_FLAG);    // Set Port1_0 and Port1_1 to Hi-Z output
 }
 
 inline void mux_forward() {
-    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL1),HSIOM_B_FLAG); // Analog mux to IDAC to PinB
-	CY_SET_REG32((void *)(CYREG_GPIO_PRT2_PC),  PC_A_FLAG); // PinA output (PinB analog)
+    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL3),HSIOM_B_FLAG); // Analog mux to IDAC to PinB
+	CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC),  PC_A_FLAG); // PinA output (PinB analog)
 }
 
 inline void mux_reverse() {
-    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL1),HSIOM_A_FLAG); // Analog mux to IDAC to PinA
-	CY_SET_REG32((void *)(CYREG_GPIO_PRT2_PC),  PC_B_FLAG); // PinA output (PinB analog)
+    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL3),HSIOM_A_FLAG); // Analog mux to IDAC to PinA
+	CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC),  PC_B_FLAG); // PinA output (PinB analog)
 }
 
 
 
 int main()
 {
-    LED2_Write(1); // Turn off LED2 (red)
-    LED_Write(1); // Turn off LED1 (green)
-    // Setup IDAC
-    IDAC_1_Start();     /* Initialize the IDAC */
-
-    // IMPORTANT! See not above about CYREG_SPIO_PRT2_PC2. The same goes for CYREG_GPIO_PRT2_DR.
+    LED2_Write(1); // Turn on LED2 (red)
+    LED_Write(0); // Turn off LED1 (green)
     
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT2_PC2),  // WE'RE SET UP FOR PINS 3.6 and 3.7, so PRT3!!!!
+    // Setup IDAC
+    IDAC_1_Start();     // Initialize the IDAC 
+    
+    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC2),  // WE'RE SET UP FOR PINS 3.6 and 3.7, so PRT3!!!!
             ((uint32)(0x01)<<Electrode_0_SHIFT) + 
             ((uint32)(0x01)<<Electrode_1_SHIFT)); // Force input off for both pins of electrode
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT2_DR), 0x00000000u); // Set digital value of P1_0 and P1_1 to 0
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT2_DR), 0x00000001u); // Set digital value of P1_0 and P1_1 to 0
+    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_DR), 0x00000000u); // Set digital value of P1_0 and P1_1 to 0
+    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_DR), 0x00000001u); // Set digital value of P1_0 and P1_1 to 0
     
     IDAC_1_SetValue(0);
     mux_reverse();
     IDAC_1_SetValue(0);
     IDAC_1_Sleep();
-    
+
+    LED2_Write(0); // red off
+    LED_Write(1); // green on
     
     system_uptime = 0;
     uptimeHandleValuePair.value.val = (uint8 *)&system_uptime;
     uptimeHandleValuePair.value.len = 4;
     uptimeHandleValuePair.attrHandle = CYBLE_PARAMS_UPTIME_CHAR_HANDLE;
     
-        
     /*==============================================================================*/
     /* configure WDT2 interrupt to track uptime                                     */
     /*==============================================================================*/
@@ -342,13 +336,18 @@ int main()
     /* set the highest priority to make ISR is executed in all condition */
     isr_1_SetPriority(0);
     
+    
+    
      /* Variable declarations */
      CYBLE_LP_MODE_T lpMode;
      CYBLE_BLESS_STATE_T blessState;
      uint8 interruptStatus;
      /* Enable global interrupts */
      CyGlobalIntEnable;
-     
+    
+    LED2_Write(1); // red on
+    LED_Write(1); // green off
+
      /* C1. Stop the ILO to reduce current consumption */
      CySysClkIloStop();
      /* C2. Configure the divider values for the ECO, so that a 3-MHz ECO divided 
@@ -364,12 +363,11 @@ int main()
      /* Wait for BLE Component to initialize */
      while (CyBle_GetState() == CYBLE_STATE_INITIALIZING)
      {
-     CyBle_ProcessEvents(); 
+     CyBle_ProcessEvents();
+    
      } 
      /*Application-specific Component and other initialization code below */
      applicationPower = ACTIVE;
-    
-    
     
      
      /* main while loop of the application */
@@ -391,8 +389,6 @@ int main()
          /*C7. Manage System power mode */
          ManageSystemPower();
         
-	 /* Manufaturer Specific Data is in element 28 of the advertisement packet.
-	  * We can only set it when we're not actively advertising, hence doing it here. */
          if(CyBle_GetBleSsState() == CYBLE_BLESS_STATE_EVENT_CLOSE) {
             cyBle_discoveryModeInfo.advData->advData[28u] = moduleID;
             CyBle_GapUpdateAdvData(cyBle_discoveryModeInfo.advData, cyBle_discoveryModeInfo.scanRspData);
@@ -422,41 +418,22 @@ CY_ISR(WDTIsrHandler)
     }
     
     else { // Stimulation!
-        state = !state;
-        
-        //if (state) {
-            mux_reverse();
-            IDAC_1_Wakeup();
-            IDAC_1_SetValue(stim_current);
-            CyDelayUs(100u);   // 100 us
-            IDAC_1_SetValue(0);
-            mux_ground();
-            IDAC_1_Sleep();
-            //CySysWdtWriteMatch(CY_SYS_WDT_COUNTER0, 300);
-            //while(!CySysWdtReadEnabledStatus(CY_SYS_WDT_COUNTER0));
-        //}
-        //else {
-            //CySysWdtWriteMatch(CY_SYS_WDT_COUNTER0, stim_period);
-            //while(!CySysWdtReadEnabledStatus(CY_SYS_WDT_COUNTER0));
-            //IDAC_1_SetValue(0);
-            //mux_ground();
-        //}
-/*
+        LED2_Write(1);
         mux_forward();
-        IDAC7_1_SetValue(DAC_VALUE);
+        IDAC_1_SetValue(stim_current);
         CyDelayUs(57u);   // 60 us
-        IDAC7_1_SetValue(0);
+        IDAC_1_SetValue(0);
         
         mux_ground();
         CyDelayUs(1u);   
         
         mux_reverse();
-        IDAC7_1_SetValue(DAC_VALUE); 
+        IDAC_1_SetValue(stim_current); 
         CyDelayUs(57u);   
-        IDAC7_1_SetValue(0);
+        IDAC_1_SetValue(0);
         mux_ground();
-*/        
-        
+        LED2_Write(0);
+      
         /* clear interrupt flag to enable next interrupt*/ 
         CySysWdtClearInterrupt(CY_SYS_WDT_COUNTER0_INT);   
     }
