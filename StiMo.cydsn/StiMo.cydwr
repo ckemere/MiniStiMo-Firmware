@@ -15,8 +15,10 @@
       <Data key="30d31b54-7a4e-420a-86ab-ecfab0cedbf7/5ae6fa4d-f41a-4a35-8821-7ce70389cb0c" value="ble_LFCLK" />
     </Group>
     <Group key="Pin">
+      <Data key="85fed3b7-196e-481d-8fa7-baf004407b9e" value="Electrode_0" />
       <Data key="392cefdb-5569-4dd9-9cce-5a700d8c36c3" value="LED2" />
       <Data key="77715107-f8d5-47e5-a629-0fb83101ac6b" value="Electrode" />
+      <Data key="d32e95a3-a3ca-437c-9cc1-9bdb7bc9875a" value="Electrode_1" />
       <Data key="de4c44f2-aa54-4b94-8785-86d36d9234b6" value="red_2" />
       <Data key="e851a3b9-efb8-48be-bbb8-b303b216c393" value="LED" />
       <Data key="fbec09ad-f35d-48cf-9f55-84d3d0aecffd" value="BOOST" />
@@ -3584,6 +3586,11 @@
     </Group>
   </Group>
   <Group key="Pin2">
+    <Group key="85fed3b7-196e-481d-8fa7-baf004407b9e">
+      <Group key="0">
+        <Data key="Port Format" value="3,0" />
+      </Group>
+    </Group>
     <Group key="392cefdb-5569-4dd9-9cce-5a700d8c36c3">
       <Group key="0">
         <Data key="Port Format" value="2,5" />
@@ -3594,6 +3601,11 @@
         <Data key="Port Format" value="3,0" />
       </Group>
       <Group key="1">
+        <Data key="Port Format" value="3,1" />
+      </Group>
+    </Group>
+    <Group key="d32e95a3-a3ca-437c-9cc1-9bdb7bc9875a">
+      <Group key="0">
         <Data key="Port Format" value="3,1" />
       </Group>
     </Group>

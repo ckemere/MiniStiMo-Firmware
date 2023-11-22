@@ -25,8 +25,8 @@ ApplicationPower applicationPower;
 
 int apiResult;
 
-uint16_t stim_period = 5000;
-uint8_t stim_current = 127;
+uint16_t stim_period = 6554; // 6 Hz
+uint8_t stim_current = 0;
 
 uint8_t moduleID = 1;
 extern CYBLE_GAPP_DISC_MODE_INFO_T cyBle_discoveryModeInfo;
@@ -245,31 +245,33 @@ uint32_t system_uptime;
 CYBLE_GATT_HANDLE_VALUE_PAIR_T uptimeHandleValuePair;
 
 
-
-
-#define MAX_DAC_VALUE (127u)  /* Maximum value for a 7-bit DAC */
-
-
-
-#define PC_A_FLAG ((uint32)(0x06) << (3*Electrode_0_SHIFT)) // defined in Electrode_aliases.h
-#define PC_B_FLAG ((uint32)(0x06) << (3*Electrode_1_SHIFT))
-
-#define HSIOM_A_FLAG ((uint32)(0x06) << (4*Electrode_0_SHIFT))
-#define HSIOM_B_FLAG ((uint32)(0x06) << (4*Electrode_1_SHIFT))
-
 inline void mux_ground() {
-    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL3), 0x00000000u); // Disconnect analog mux from all pins
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC), PC_A_FLAG + PC_B_FLAG);    // Set Port1_0 and Port1_1 to Hi-Z output
-}
-
-inline void mux_forward() {
-    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL3),HSIOM_B_FLAG); // Analog mux to IDAC to PinB
-	CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC),  PC_A_FLAG); // PinA output (PinB analog)
+    Electrode_0_SetDriveMode(Electrode_0_DM_STRONG);
+    CY_SET_REG32(Electrode_0__0__HSIOM, (CY_GET_REG32(Electrode_0__0__HSIOM) & ~(Electrode_0__0__HSIOM_MASK)));
+    Electrode_1_SetDriveMode(Electrode_1_DM_STRONG);
+    CY_SET_REG32(Electrode_1__0__HSIOM, (CY_GET_REG32(Electrode_1__0__HSIOM) & ~(Electrode_1__0__HSIOM_MASK)));
+    Electrode_0_Write(0);
+    Electrode_1_Write(0);
 }
 
 inline void mux_reverse() {
-    CY_SET_REG32((void *)(CYREG_HSIOM_PORT_SEL3),HSIOM_A_FLAG); // Analog mux to IDAC to PinA
-	CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC),  PC_B_FLAG); // PinA output (PinB analog)
+    Electrode_0_SetDriveMode(Electrode_0_DM_STRONG);
+    CY_SET_REG32(Electrode_0__0__HSIOM, (CY_GET_REG32(Electrode_0__0__HSIOM) & ~(Electrode_0__0__HSIOM_MASK)));
+    Electrode_0_Write(0);
+    
+    Electrode_1_SetDriveMode(Electrode_1_DM_ALG_HIZ);
+    CY_SET_REG32(Electrode_1__0__HSIOM, (CY_GET_REG32(Electrode_1__0__HSIOM) & ~(Electrode_1__0__HSIOM_MASK)));
+    CY_SET_REG32(Electrode_1__0__HSIOM, (CY_GET_REG32(Electrode_1__0__HSIOM) | (0x06 << Electrode_1__0__HSIOM_SHIFT)));
+}
+
+inline void mux_forward() {
+    Electrode_1_SetDriveMode(Electrode_1_DM_STRONG);
+    CY_SET_REG32(Electrode_1__0__HSIOM, (CY_GET_REG32(Electrode_1__0__HSIOM) & ~(Electrode_1__0__HSIOM_MASK)));
+    Electrode_1_Write(0);
+    
+    Electrode_0_SetDriveMode(Electrode_0_DM_ALG_HIZ);
+    CY_SET_REG32(Electrode_0__0__HSIOM, (CY_GET_REG32(Electrode_0__0__HSIOM) & ~(Electrode_0__0__HSIOM_MASK)));
+    CY_SET_REG32(Electrode_0__0__HSIOM, (CY_GET_REG32(Electrode_0__0__HSIOM) | (0x06 << Electrode_0__0__HSIOM_SHIFT)));
 }
 
 
@@ -280,18 +282,9 @@ int main()
     LED_Write(0); // Turn off LED1 (green)
     
     // Setup IDAC
-    IDAC_1_Start();     // Initialize the IDAC 
-    
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_PC2),  // WE'RE SET UP FOR PINS 3.6 and 3.7, so PRT3!!!!
-            ((uint32)(0x01)<<Electrode_0_SHIFT) + 
-            ((uint32)(0x01)<<Electrode_1_SHIFT)); // Force input off for both pins of electrode
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_DR), 0x00000000u); // Set digital value of P1_0 and P1_1 to 0
-    CY_SET_REG32((void *)(CYREG_GPIO_PRT3_DR), 0x00000001u); // Set digital value of P1_0 and P1_1 to 0
-    
-    IDAC_1_SetValue(0);
-    mux_reverse();
-    IDAC_1_SetValue(0);
+    IDAC_1_Start();     // Initialize the IDAC
     IDAC_1_Sleep();
+    
 
     LED2_Write(0); // red off
     LED_Write(1); // green on
@@ -419,19 +412,23 @@ CY_ISR(WDTIsrHandler)
     
     else { // Stimulation!
         LED2_Write(1);
+        
+        IDAC_1_Wakeup();
         mux_forward();
         IDAC_1_SetValue(stim_current);
         CyDelayUs(57u);   // 60 us
         IDAC_1_SetValue(0);
-        
         mux_ground();
-        CyDelayUs(1u);   
+        
+        CyDelayUs(6u);   
         
         mux_reverse();
         IDAC_1_SetValue(stim_current); 
         CyDelayUs(57u);   
         IDAC_1_SetValue(0);
         mux_ground();
+        
+        IDAC_1_Sleep();
         LED2_Write(0);
       
         /* clear interrupt flag to enable next interrupt*/ 
