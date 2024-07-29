@@ -25,10 +25,15 @@ ApplicationPower applicationPower;
 
 int apiResult;
 
+uint8_t flash_data_to_write[CY_SFLASH_SIZEOF_USERROW] = {0};
+
 uint16_t stim_period = 6554; // 6 Hz
 uint8_t stim_current = 0;
 
+
 uint8_t moduleID = 1;
+uint16_t writes_so_far = 0;
+
 extern CYBLE_GAPP_DISC_MODE_INFO_T cyBle_discoveryModeInfo;
 
 void UpdateStimInterval()
@@ -55,6 +60,18 @@ void UpdateStimInterval()
     /* check if counter 0 is enabled, otherwise keep looping here */
     while(!CySysWdtReadEnabledStatus(CY_SYS_WDT_COUNTER0));
     
+}
+
+void WriteParametersToFlash() {                
+    writes_so_far += 1;                
+    *(uint16_t *)&flash_data_to_write[0] = writes_so_far; // update flash_data_to_write matrix with current values
+    *(uint16_t *)&flash_data_to_write[2] = stim_period; // stim period
+    flash_data_to_write[5] = stim_current; // stim current
+    flash_data_to_write[6] = moduleID; // module ID
+    CySysSFlashWriteUserRow(1, flash_data_to_write);
+    
+    CYBLE_GATT_HANDLE_VALUE_PAIR_T pair = { { (uint8 *)&writes_so_far, 2, 2}, CYBLE_PARAMS_FLASHWRITES_CHAR_HANDLE };
+    CyBle_GattsWriteAttributeValue( &pair, 0, &cyBle_connHandle, CYBLE_GATT_DB_LOCALLY_INITIATED );
 }
 
 void AppCallBack(uint32 event, void* eventParam) 
@@ -106,6 +123,8 @@ void AppCallBack(uint32 event, void* eventParam)
                 stim_period = wrReqParam->handleValPair.value.val[0] + ((uint16_t) wrReqParam->handleValPair.value.val[1] << 8);   
                 UpdateStimInterval();
                 
+                WriteParametersToFlash();
+                
                 CyBle_GattsWriteRsp(cyBle_connHandle);
             }
         }
@@ -117,6 +136,9 @@ void AppCallBack(uint32 event, void* eventParam)
             {
    
                 stim_current = wrReqParam->handleValPair.value.val[0];
+
+                WriteParametersToFlash();
+
                 CyBle_GattsWriteRsp(cyBle_connHandle);
             }
         }
@@ -129,6 +151,9 @@ void AppCallBack(uint32 event, void* eventParam)
             {
    
                 moduleID = wrReqParam->handleValPair.value.val[0];
+
+                WriteParametersToFlash();
+                
                 CyBle_GattsWriteRsp(cyBle_connHandle);
             }
         }
@@ -281,13 +306,37 @@ int main()
     LED2_Write(1); // Turn on LED2 (red)
     LED_Write(0); // Turn off LED1 (green)
     
+    
     // Setup IDAC
     IDAC_1_Start();     // Initialize the IDAC
     IDAC_1_Sleep();
     
 
     LED2_Write(0); // red off
-    LED_Write(1); // green on
+    
+    // Read data from flash in case it's been programmed in.
+    uint8_t  *user_sflash = (void *)(CY_SFLASH_USERBASE + CY_SFLASH_SIZEOF_USERROW); // This should point at the second row of User SFlash
+    uint16_t flash_writes_so_far = *(uint16_t *)(user_sflash); // first thing stored is writes_so_far
+    uint16_t flash_stim_period = *(uint16_t *)(user_sflash + 2); // stim period is stored after writes_so_far
+    uint8_t  flash_stim_current = *(uint8_t *)(user_sflash + 4); // next is stim_current, which is just 1 byte
+    uint8_t  flash_moduleID = *(uint8_t *)(user_sflash + 5); // finally is module ID
+
+    
+    if (flash_writes_so_far > 0) { // data has been initialized
+        LED_Write(0); // green off
+        writes_so_far = flash_writes_so_far;
+        stim_period = flash_stim_period;
+        if (stim_period < 160) // error check bounds
+            stim_period = 160;
+        stim_current = flash_stim_current;
+        if (stim_current > 200)
+            stim_current = 200;
+        moduleID = flash_moduleID;
+    }
+    else {
+        LED_Write(1); // green on
+    }
+
     
     system_uptime = 0;
     uptimeHandleValuePair.value.val = (uint8 *)&system_uptime;
@@ -339,7 +388,7 @@ int main()
      CyGlobalIntEnable;
     
     LED2_Write(1); // red on
-    LED_Write(1); // green off
+    // LED_Write(1); // green on
 
      /* C1. Stop the ILO to reduce current consumption */
      CySysClkIloStop();
@@ -362,6 +411,19 @@ int main()
      /*Application-specific Component and other initialization code below */
      applicationPower = ACTIVE;
     
+    // Update all the BLE characteristics to match what we read from the flash
+    CYBLE_GATT_HANDLE_VALUE_PAIR_T pair = { { (uint8 *)&stim_period, 2, 2}, CYBLE_PARAMS_FREQUENCY_CHAR_HANDLE };
+    CyBle_GattsWriteAttributeValue( &pair, 0, &cyBle_connHandle, CYBLE_GATT_DB_LOCALLY_INITIATED );
+
+    CYBLE_GATT_HANDLE_VALUE_PAIR_T pair2 = { { &stim_current, 1, 1}, CYBLE_PARAMS_CURRENT_CHAR_HANDLE };
+    CyBle_GattsWriteAttributeValue( &pair2, 0, &cyBle_connHandle, CYBLE_GATT_DB_LOCALLY_INITIATED );
+
+    CYBLE_GATT_HANDLE_VALUE_PAIR_T pair3 = { { &moduleID, 1, 1 }, CYBLE_PARAMS_MODULEID_CHAR_HANDLE };
+    CyBle_GattsWriteAttributeValue( &pair3, 0, &cyBle_connHandle, CYBLE_GATT_DB_LOCALLY_INITIATED );
+
+    CYBLE_GATT_HANDLE_VALUE_PAIR_T pair4 = { { (uint8 *)&flash_writes_so_far, 2, 2}, CYBLE_PARAMS_FLASHWRITES_CHAR_HANDLE };
+    CyBle_GattsWriteAttributeValue( &pair4, 0, &cyBle_connHandle, CYBLE_GATT_DB_LOCALLY_INITIATED );
+
      
      /* main while loop of the application */
      while(1)
